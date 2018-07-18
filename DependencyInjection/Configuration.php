@@ -18,11 +18,15 @@ class Configuration implements ConfigurationInterface
     public function getConfigTreeBuilder()
     {
         $treeBuilder = new TreeBuilder();
-        $rootNode = $treeBuilder->root('redcode_tree');
+        $rootNode = $treeBuilder->root('red_code_tree');
 
-        // Here you should define the parameters that are allowed to
-        // configure your bundle. See the documentation linked above for
-        // more information on that topic.
+        $rootNode
+            ->children()
+                ->scalarNode('template')
+                    ->cannotBeEmpty()
+                    ->defaultValue('RedCodeTreeBundle:CRUD:tree.html.twig')
+                ->end()
+            ->end();
 
         return $treeBuilder;
     }

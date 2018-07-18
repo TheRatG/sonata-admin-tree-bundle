@@ -27,11 +27,10 @@ class TreeAdminController extends CRUDController
             }
 
             return $this->render(
-                'RedCodeTreeBundle:CRUD:tree.html.twig',
+                $this->getParameter('red_code_tree.template'),
                 [
                     'action' => 'list',
                     'csrf_token' => $this->getCsrfToken('sonata.batch'),
-                    '_sonata_admin' => $request->get('_sonata_admin'),
                 ],
                 null,
                 $request
@@ -44,12 +43,8 @@ class TreeAdminController extends CRUDController
     public function treeDataAction()
     {
         $request = $this->getRequest();
-        
-        $doctrine = $this->get('doctrine');
-        /** @var EntityManager $em */
-        $em = $doctrine->getManagerForClass($this->admin->getClass());
-        /** @var NestedTreeRepository $repo */
-        $repo = $em->getRepository($this->admin->getClass());
+
+        $repo = $this->getRepository();
 
         $operation = $request->get('operation');
         switch ($operation) {
@@ -64,10 +59,12 @@ class TreeAdminController extends CRUDController
 
                 $nodes = array_map(
                     function ($node) {
+                        $cnt = $node->getChildren()->count();
                         return [
                             'id' => $node->getId(),
-                            'text' => (string) $node,
-                            'children' => true,
+                            'text' => $node->{'get' . ucfirst($this->admin->getTreeTextField())}(),
+                            'children' => $cnt > 0,
+                            'type' => $cnt > 0 ? 'default' : 'file',
                         ];
                     },
                     $nodes
@@ -107,7 +104,7 @@ class TreeAdminController extends CRUDController
                 return new JsonResponse(
                     [
                         'id' => $node->getId(),
-                        'text' => $node->{'get'.ucfirst($this->admin->getTreeTextField())}(),
+                        'text' => $node->{'get' . ucfirst($this->admin->getTreeTextField())}(),
                     ]
                 );
             case 'rename_node':
@@ -115,13 +112,13 @@ class TreeAdminController extends CRUDController
                 $nodeText = $request->get('text');
                 $node = $repo->find($nodeId);
 
-                $node->{'set'.ucfirst($this->admin->getTreeTextField())}($nodeText);
+                $node->{'set' . ucfirst($this->admin->getTreeTextField())}($nodeText);
                 $this->admin->getModelManager()->update($node);
 
                 return new JsonResponse(
                     [
                         'id' => $node->getId(),
-                        'text' => $node->{'get'.ucfirst($this->admin->getTreeTextField())}(),
+                        'text' => $node->{'get' . ucfirst($this->admin->getTreeTextField())}(),
                     ]
                 );
             case 'create_node':
@@ -129,14 +126,14 @@ class TreeAdminController extends CRUDController
                 $parentNode = $repo->find($parentNodeId);
                 $nodeText = $request->get('text');
                 $node = $this->admin->getNewInstance();
-                $node->{'set'.ucfirst($this->admin->getTreeTextField())}($nodeText);
+                $node->{'set' . ucfirst($this->admin->getTreeTextField())}($nodeText);
                 $node->setParent($parentNode);
                 $this->admin->getModelManager()->create($node);
 
                 return new JsonResponse(
                     [
                         'id' => $node->getId(),
-                        'text' => $node->{'get'.ucfirst($this->admin->getTreeTextField())}(),
+                        'text' => $node->{'get' . ucfirst($this->admin->getTreeTextField())}(),
                     ]
                 );
             case 'delete_node':
@@ -148,5 +145,51 @@ class TreeAdminController extends CRUDController
         }
 
         throw new BadRequestHttpException('Unknown action for tree');
+    }
+
+    public function moveUpAction(int $id)
+    {
+        $object = $this->admin->getObject($id);
+        if (!$object) {
+            throw $this->createNotFoundException();
+        }
+
+        $this->getRepository()->moveUp($object, 1);
+
+        $this->addFlash(
+            'sonata_flash_error',
+            $this->trans('flash_move_up_success', [], 'RedCodeTreeBundle')
+        );
+
+        return $this->redirectToList();
+    }
+
+    public function moveDownAction(int $id)
+    {
+        $object = $this->admin->getObject($id);
+        if (!$object) {
+            throw $this->createNotFoundException();
+        }
+        $this->getRepository()->moveDown($object, 1);
+
+        $this->addFlash(
+            'sonata_flash_error',
+            $this->trans('flash_move_down_success', [], 'RedCodeTreeBundle')
+        );
+
+        return $this->redirectToList();
+    }
+
+    /**
+     * @return NestedTreeRepository
+     */
+    protected function getRepository(): NestedTreeRepository
+    {
+        $doctrine = $this->get('doctrine');
+        /** @var EntityManager $em */
+        $em = $doctrine->getManagerForClass($this->admin->getClass());
+        /** @var NestedTreeRepository $repo */
+        $repo = $em->getRepository($this->admin->getClass());
+        return $repo;
     }
 }

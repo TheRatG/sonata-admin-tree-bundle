@@ -3,6 +3,7 @@
 namespace RedCode\TreeBundle\Admin;
 
 use Sonata\AdminBundle\Admin\AbstractAdmin;
+use Sonata\AdminBundle\Route\RouteCollection;
 
 class AbstractTreeAdmin extends AbstractAdmin
 {
@@ -30,5 +31,13 @@ class AbstractTreeAdmin extends AbstractAdmin
     public function getTreeTextField()
     {
         return $this->treeTextField;
+    }
+
+    protected function configureRoutes(RouteCollection $collection)
+    {
+        $collection
+            ->add('treeData', '/tree-data')
+            ->add('moveUp', $this->getRouterIdParameter() . '/move-up')
+            ->add('moveDown', $this->getRouterIdParameter() . '/move-down');
     }
 }

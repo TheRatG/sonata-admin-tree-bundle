@@ -41,14 +41,6 @@ class AppKernel extends Kernel
 }
 ```
 
-Add the following lines to the routing file `./app/config/routing.yml`
-```yml
-redcode_tree:
-    resource: "@RedCodeTreeBundle/Resources/config/routing.yml"
-    prefix:   /admin
-```
-
-
 For the entity with enabled [Gedmo Nested Set](https://github.com/Atlantic18/DoctrineExtensions/blob/master/doc/tree.md) follow these steps:
 
 Extend Admin class from `\RedCode\TreeBundle\Admin\AbstractTreeAdmin`
